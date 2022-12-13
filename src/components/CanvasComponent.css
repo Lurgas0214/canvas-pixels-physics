@@ -1,0 +1,8 @@
+.canvas-canvas {
+    /* background-color: blue; */
+    cursor: pointer;
+}
+
+.canvas-image-source {
+    display: none;
+}
