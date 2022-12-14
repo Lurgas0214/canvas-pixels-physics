@@ -15,7 +15,7 @@ const getColor = (pixels: Uint8ClampedArray, index: number): string => {
 };
 
 class Mouse {
-    radius: number = 5000;
+    radius: number = 15000;
     x: number = 0;
     y: number = 0;
 
