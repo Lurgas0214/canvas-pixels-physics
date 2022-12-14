@@ -1,5 +1,4 @@
 import React from "react";
-import "./CanvasComponent.css";
 
 const getAlpha = (pixels: Uint8ClampedArray, index: number): number => {
     return pixels[index + 3];
@@ -15,7 +14,7 @@ const getColor = (pixels: Uint8ClampedArray, index: number): string => {
 };
 
 class Mouse {
-    radius: number = 15000;
+    radius: number = 3000;
     x: number = 0;
     y: number = 0;
 
@@ -26,12 +25,13 @@ class Mouse {
 }
 
 class Particle {
+    friction: number;
     distance: number;
     originX: number;
     originY: number;
+    color: string;
     angle: number;
     force: number;
-    color: string;
     ease: number;
     size: number;
     vx: number;
@@ -47,6 +47,7 @@ class Particle {
         this.originX = Math.floor(x);
         this.originY = Math.floor(y);
         this.size = Math.floor(size);
+        this.friction = 1 - ease;
         this.color = color;
         this.ease = ease;
         this.distance = 0;
@@ -66,19 +67,17 @@ class Particle {
     update(mouse: Mouse) {
         this.dx = mouse.x - this.x;
         this.dy = mouse.y - this.y;
-        this.distance = this.dx * this.dx + (this.dy * this.dy);
+        this.distance = this.dx * this.dx + this.dy * this.dy;
         this.force = -mouse.radius / this.distance;
 
         if (this.distance < mouse.radius) {
             this.angle = Math.atan2(this.dy, this.dx);
-            this.vx = this.force * Math.cos(this.angle);
-            this.vy = this.force * Math.sin(this.angle);
-            this.x += this.vx;
-            this.y += this.vy;
+            this.vx += this.force * Math.cos(this.angle);
+            this.vy += this.force * Math.sin(this.angle);
         }
 
-        this.x += (this.originX - this.x) * this.ease;
-        this.y += (this.originY - this.y) * this.ease;
+        this.x += (this.originX - this.x) * this.ease + (this.vx *= this.friction);
+        this.y += (this.originY - this.y) * this.ease + (this.vy *= this.friction);
     }
 }
 
@@ -86,11 +85,7 @@ interface CanvasProps {
     base64String: string
 }
 
-interface CanvasStateProps {
-    particles?: Particle[]
-}
-
-class CanvasComponent extends React.Component<CanvasProps, CanvasStateProps> {
+class CanvasComponent extends React.Component<CanvasProps> {
     canvasContext: CanvasRenderingContext2D | null = null;
     canvasElement: HTMLCanvasElement | null = null;
     imageElement: HTMLImageElement | null = null;
@@ -100,25 +95,23 @@ class CanvasComponent extends React.Component<CanvasProps, CanvasStateProps> {
     ease: number = 0.2;
     gap: number = 5;
 
-    componentDidMount() {
+    init = () => {
         const { canvasElement, canvasContext, imageElement, particles, ease, gap } = this;
         if (canvasElement && canvasContext && imageElement) {
-            imageElement.onload = () => {
-                const shift = 0.2, stretch = 1 - (shift * 2), dx = canvasElement.width * shift, dy = canvasElement.height * shift, dw = canvasElement.width * stretch, dh = canvasElement.height * stretch;
-                let pixels: Uint8ClampedArray | null = null, color: string, alpha: number, index: number, x: number, y: number;
-                canvasContext.drawImage(imageElement, dx, dy, dw, dh);
-                pixels = canvasContext.getImageData(0, 0, canvasElement.width, canvasElement.height).data;
-                for (x = 0; x < canvasElement.width; x += gap) {
-                    for (y = 0; y < canvasElement.height; y += gap) {
-                        index = (y * canvasElement.width + x) * 4;
-                        color = getColor(pixels, index);
-                        alpha = getAlpha(pixels, index);
-                        if (alpha > 0) {
-                            particles.push(new Particle(canvasElement, color, gap, ease, x, y));
-                        }
+            const shift = 0.2, stretch = 1 - (shift * 2), dx = canvasElement.width * shift, dy = canvasElement.height * shift, dw = canvasElement.width * stretch, dh = canvasElement.height * stretch;
+            let pixels: Uint8ClampedArray | null = null, color: string, alpha: number, index: number, x: number, y: number;
+            canvasContext.drawImage(imageElement, dx, dy, dw, dh);
+            pixels = canvasContext.getImageData(0, 0, canvasElement.width, canvasElement.height).data;
+            for (x = 0; x < canvasElement.width; x += gap) {
+                for (y = 0; y < canvasElement.height; y += gap) {
+                    index = (y * canvasElement.width + x) * 4;
+                    color = getColor(pixels, index);
+                    alpha = getAlpha(pixels, index);
+                    if (alpha > 0) {
+                        particles.push(new Particle(canvasElement, color, gap, ease, x, y));
                     }
                 }
-            };
+            }
         }
         this.warp();
     };
@@ -156,8 +149,9 @@ class CanvasComponent extends React.Component<CanvasProps, CanvasStateProps> {
                 <img alt="" className="canvas-image-source" src={base64String} ref={(htmlElement: HTMLImageElement) => {
                     if (htmlElement) {
                         this.imageElement = htmlElement;
+                        this.imageElement.onload = this.init;
                     }
-                }} />
+                }} style={{ display: "none" }} />
             </React.Fragment>
         )
     }
