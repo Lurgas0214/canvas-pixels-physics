@@ -15,8 +15,9 @@ const getColor = (pixels: Uint8ClampedArray, index: number): string => {
 };
 
 class Mouse {
-    x: number | undefined;
-    y: number | undefined;
+    radius: number = 5000;
+    x: number = 0;
+    y: number = 0;
 
     update = (x: number, y: number) => {
         this.x = x;
@@ -25,45 +26,59 @@ class Mouse {
 }
 
 class Particle {
+    distance: number;
     originX: number;
     originY: number;
+    angle: number;
+    force: number;
     color: string;
     ease: number;
     size: number;
     vx: number;
     vy: number;
+    dx: number;
+    dy: number;
     x: number;
     y: number;
-    v: number;
 
-    constructor(radius: number, color: string, size: number, ease: number, x: number, y: number, v: number) {
-        this.x = Math.floor(getRndNumber(radius));
-        this.y = Math.floor(getRndNumber(radius));
-        this.vx = Math.floor(getRndNumber(v));
-        this.vy = Math.floor(getRndNumber(v));
+    constructor(canvasElement: HTMLCanvasElement, color: string, size: number, ease: number, x: number, y: number) {
+        this.x = getRndNumber(canvasElement.width * 2);
+        this.y = getRndNumber(canvasElement.height * 2);
         this.originX = Math.floor(x);
         this.originY = Math.floor(y);
         this.size = Math.floor(size);
         this.color = color;
         this.ease = ease;
-        this.v = v;
+        this.distance = 0;
+        this.angle = 0;
+        this.force = 0;
+        this.vx = 0;
+        this.vy = 0;
+        this.dx = 0;
+        this.dy = 0;
     }
 
-    draw(context: CanvasRenderingContext2D | null) {
-        if (context) {
-            context.fillStyle = this.color;
-            context.fillRect(this.x, this.y, this.size, this.size);
+    draw(context: CanvasRenderingContext2D) {
+        context.fillStyle = this.color;
+        context.fillRect(this.x, this.y, this.size, this.size);
+    }
+
+    update(mouse: Mouse) {
+        this.dx = mouse.x - this.x;
+        this.dy = mouse.y - this.y;
+        this.distance = this.dx * this.dx + (this.dy * this.dy);
+        this.force = -mouse.radius / this.distance;
+
+        if (this.distance < mouse.radius) {
+            this.angle = Math.atan2(this.dy, this.dx);
+            this.vx = this.force * Math.cos(this.angle);
+            this.vy = this.force * Math.sin(this.angle);
+            this.x += this.vx;
+            this.y += this.vy;
         }
-    }
 
-    return2Origin() {
         this.x += (this.originX - this.x) * this.ease;
         this.y += (this.originY - this.y) * this.ease;
-    }
-
-    update(x: number, y: number) {
-        this.x = x;
-        this.y = y;
     }
 }
 
@@ -79,15 +94,14 @@ class CanvasComponent extends React.Component<CanvasProps, CanvasStateProps> {
     canvasContext: CanvasRenderingContext2D | null = null;
     canvasElement: HTMLCanvasElement | null = null;
     imageElement: HTMLImageElement | null = null;
+    animationFrameId: number | null = null;
     particles: Particle[] = [];
     mouse: Mouse = new Mouse();
-    radius: number = 3000;
-    velocity: number = 33;
     ease: number = 0.2;
     gap: number = 5;
 
     componentDidMount() {
-        const { canvasElement, canvasContext, imageElement, particles, velocity, radius, ease, gap } = this;
+        const { canvasElement, canvasContext, imageElement, particles, ease, gap } = this;
         if (canvasElement && canvasContext && imageElement) {
             imageElement.onload = () => {
                 const shift = 0.2, stretch = 1 - (shift * 2), dx = canvasElement.width * shift, dy = canvasElement.height * shift, dw = canvasElement.width * stretch, dh = canvasElement.height * stretch;
@@ -100,7 +114,7 @@ class CanvasComponent extends React.Component<CanvasProps, CanvasStateProps> {
                         color = getColor(pixels, index);
                         alpha = getAlpha(pixels, index);
                         if (alpha > 0) {
-                            particles.push(new Particle(radius, color, gap, ease, x, y, velocity));
+                            particles.push(new Particle(canvasElement, color, gap, ease, x, y));
                         }
                     }
                 }
@@ -110,22 +124,17 @@ class CanvasComponent extends React.Component<CanvasProps, CanvasStateProps> {
     };
 
     warp = () => {
-        const { canvasElement, canvasContext, particles } = this;
+        const { canvasElement, canvasContext, particles, mouse } = this;
         if (canvasContext && canvasElement) {
             canvasContext.clearRect(0, 0, canvasElement.width, canvasElement.height);
-            particles.forEach(particle => particle.return2Origin());
-            particles.forEach(particle => particle.draw(this.canvasContext));
-            requestAnimationFrame(this.warp);
+            particles.forEach(particle => particle.update(mouse));
+            particles.forEach(particle => particle.draw(canvasContext));
+            this.animationFrameId = requestAnimationFrame(this.warp);
         }
     };
 
     mouseEvent = (event: MouseEvent) => {
         this.mouse.update(event.x, event.y);
-    };
-
-    mouseClick = () => {
-        const { particles, radius } = this;
-        particles.forEach(particle => particle.update(Math.floor(getRndNumber(radius)), Math.floor(getRndNumber(radius))));
     };
 
     render() {
@@ -140,7 +149,6 @@ class CanvasComponent extends React.Component<CanvasProps, CanvasStateProps> {
                             htmlElement.height = htmlElement.parentElement.clientHeight;
                         }
                         this.canvasElement = htmlElement;
-                        this.canvasElement.onclick = this.mouseClick;
                         this.canvasElement.onmousemove = this.mouseEvent;
                         this.canvasContext = htmlElement.getContext('2d');
                     }
