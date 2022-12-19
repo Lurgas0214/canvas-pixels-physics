@@ -15,10 +15,14 @@ const getColor = (pixels: Uint8ClampedArray, index: number): string => {
 
 class Mouse {
     radius: number;
+    offsetX: number;
+    offsetY: number;
     x: number;
     y: number;
 
-    constructor(radius: number) {
+    constructor(radius: number, offsetX: number, offsetY: number) {
+        this.offsetX = offsetX;
+        this.offsetY = offsetY;
         this.radius = radius;
         this.x = 0;
         this.y = 0;
@@ -71,8 +75,8 @@ class Particle {
     }
 
     update(mouse: Mouse) {
-        this.dx = mouse.x - this.x;
-        this.dy = mouse.y - this.y;
+        this.dx = mouse.x - mouse.offsetX - this.x;
+        this.dy = mouse.y - mouse.offsetY - this.y;
         this.distance = this.dx * this.dx + this.dy * this.dy;
         this.force = -mouse.radius / this.distance;
 
@@ -96,8 +100,8 @@ class CanvasComponent extends React.Component<CanvasProps> {
     canvasElement: HTMLCanvasElement | null = null;
     imageElement: HTMLImageElement | null = null;
     animationFrameId: number | null = null;
-    mouse: Mouse = new Mouse(33000);
     particles: Particle[] = [];
+    mouse: Mouse | null = null;
     ease: number = 0.2;
     gap: number = 5;
 
@@ -134,7 +138,7 @@ class CanvasComponent extends React.Component<CanvasProps> {
 
     warp = () => {
         const { canvasElement, canvasContext, particles, mouse } = this;
-        if (canvasContext && canvasElement) {
+        if (canvasContext && canvasElement && mouse) {
             canvasContext.clearRect(0, 0, canvasElement.width, canvasElement.height);
             particles.forEach(particle => particle.update(mouse));
             particles.forEach(particle => particle.draw(canvasContext));
@@ -155,9 +159,10 @@ class CanvasComponent extends React.Component<CanvasProps> {
                 htmlElement.width = htmlElement.parentElement.clientWidth;
                 htmlElement.height = htmlElement.parentElement.clientHeight;
             }
+            this.mouse = new Mouse(33000, htmlElement.offsetLeft, htmlElement.offsetTop);
             this.canvasElement = htmlElement;
             this.canvasElement.onmousemove = (event: MouseEvent) => {
-                this.mouse.update(event.x, event.y);
+                this.mouse?.update(event.x, event.y);
             };
             this.canvasContext = htmlElement.getContext('2d');
         }
