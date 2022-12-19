@@ -108,7 +108,7 @@ class CanvasComponent extends React.Component<CanvasProps> {
     }
 
     init = () => {
-        let pixels: Uint8ClampedArray | null = null, color: string, alpha: number, index: number, x: number, y: number, dx = 0, dy = 0, dw = 0, dh = 0;
+        let pixels: Uint8ClampedArray | null = null, color: string, alpha: number, index: number, x: number, y: number, dx: number, dy: number, dw: number, dh: number;
         const { canvasElement, canvasContext, imageElement, particles, ease, gap } = this;
         const shift = 0.2, stretch = 1 - (shift * 2);
         if (canvasElement && canvasContext && imageElement) {
