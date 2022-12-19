@@ -14,9 +14,15 @@ const getColor = (pixels: Uint8ClampedArray, index: number): string => {
 };
 
 class Mouse {
-    radius: number = 3000;
-    x: number = 0;
-    y: number = 0;
+    radius: number;
+    x: number;
+    y: number;
+
+    constructor(radius: number) {
+        this.radius = radius;
+        this.x = 0;
+        this.y = 0;
+    }
 
     update = (x: number, y: number) => {
         this.x = x;
@@ -90,16 +96,26 @@ class CanvasComponent extends React.Component<CanvasProps> {
     canvasElement: HTMLCanvasElement | null = null;
     imageElement: HTMLImageElement | null = null;
     animationFrameId: number | null = null;
+    mouse: Mouse = new Mouse(33000);
     particles: Particle[] = [];
-    mouse: Mouse = new Mouse();
     ease: number = 0.2;
     gap: number = 5;
 
+    componentWillUnmount(): void {
+        if (this.animationFrameId) {
+            cancelAnimationFrame(this.animationFrameId);
+        }
+    }
+
     init = () => {
+        let pixels: Uint8ClampedArray | null = null, color: string, alpha: number, index: number, x: number, y: number, dx = 0, dy = 0, dw = 0, dh = 0;
         const { canvasElement, canvasContext, imageElement, particles, ease, gap } = this;
+        const shift = 0.2, stretch = 1 - (shift * 2);
         if (canvasElement && canvasContext && imageElement) {
-            const shift = 0.2, stretch = 1 - (shift * 2), dx = canvasElement.width * shift, dy = canvasElement.height * shift, dw = canvasElement.width * stretch, dh = canvasElement.height * stretch;
-            let pixels: Uint8ClampedArray | null = null, color: string, alpha: number, index: number, x: number, y: number;
+            dx = canvasElement.width * shift;
+            dy = canvasElement.height * shift;
+            dw = canvasElement.width * stretch;
+            dh = canvasElement.height * stretch;
             canvasContext.drawImage(imageElement, dx, dy, dw, dh);
             pixels = canvasContext.getImageData(0, 0, canvasElement.width, canvasElement.height).data;
             for (x = 0; x < canvasElement.width; x += gap) {
@@ -126,8 +142,25 @@ class CanvasComponent extends React.Component<CanvasProps> {
         }
     };
 
-    mouseEvent = (event: MouseEvent) => {
-        this.mouse.update(event.x, event.y);
+    refBindImage = (htmlElement: HTMLImageElement) => {
+        if (htmlElement) {
+            this.imageElement = htmlElement;
+            this.imageElement.onload = this.init;
+        }
+    };
+
+    refBindCanvas = (htmlElement: HTMLCanvasElement) => {
+        if (htmlElement) {
+            if (htmlElement.parentElement) {
+                htmlElement.width = htmlElement.parentElement.clientWidth;
+                htmlElement.height = htmlElement.parentElement.clientHeight;
+            }
+            this.canvasElement = htmlElement;
+            this.canvasElement.onmousemove = (event: MouseEvent) => {
+                this.mouse.update(event.x, event.y);
+            };
+            this.canvasContext = htmlElement.getContext('2d');
+        }
     };
 
     render() {
@@ -135,23 +168,19 @@ class CanvasComponent extends React.Component<CanvasProps> {
 
         return (
             <React.Fragment>
-                <canvas className="canvas-canvas" ref={(htmlElement: HTMLCanvasElement) => {
-                    if (htmlElement) {
-                        if (htmlElement.parentElement) {
-                            htmlElement.width = htmlElement.parentElement.clientWidth;
-                            htmlElement.height = htmlElement.parentElement.clientHeight;
-                        }
-                        this.canvasElement = htmlElement;
-                        this.canvasElement.onmousemove = this.mouseEvent;
-                        this.canvasContext = htmlElement.getContext('2d');
-                    }
-                }}></canvas>
-                <img alt="" className="canvas-image-source" src={base64String} ref={(htmlElement: HTMLImageElement) => {
-                    if (htmlElement) {
-                        this.imageElement = htmlElement;
-                        this.imageElement.onload = this.init;
-                    }
-                }} style={{ display: "none" }} />
+                <canvas
+                    className="canvas-canvas"
+                    ref={this.refBindCanvas}
+                ></canvas>
+                <img
+                    alt=""
+                    className="canvas-image-source"
+                    src={base64String}
+                    ref={this.refBindImage}
+                    style={{
+                        display: "none"
+                    }}
+                />
             </React.Fragment>
         )
     }
