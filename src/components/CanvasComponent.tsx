@@ -13,6 +13,16 @@ const getColor = (pixels: Uint8ClampedArray, index: number): string => {
     return ('rgb(' + red + ',' + green + ',' + blue + ')');
 };
 
+const getOffsetLeft = (html: HTMLElement): number => {
+    if (html.parentElement) return html.offsetLeft + getOffsetLeft(html.parentElement);
+    return html.offsetLeft;
+}
+
+const getOffsetTop = (html: HTMLElement): number => {
+    if (html.parentElement) return html.offsetTop + getOffsetTop(html.parentElement);
+    return html.offsetTop;
+}
+
 class Mouse {
     offsetX: number;
     offsetY: number;
@@ -159,7 +169,7 @@ class CanvasComponent extends React.Component<CanvasProps> {
                 htmlElement.width = htmlElement.parentElement.clientWidth;
                 htmlElement.height = htmlElement.parentElement.clientHeight;
             }
-            this.mouse = new Mouse(33000, htmlElement.offsetLeft, htmlElement.offsetTop);
+            this.mouse = new Mouse(33000, getOffsetLeft(htmlElement), getOffsetTop(htmlElement));
             this.canvasElement = htmlElement;
             this.canvasElement.onmousemove = (event: MouseEvent) => {
                 this.mouse?.update(event.x, event.y);
