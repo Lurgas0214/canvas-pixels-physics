@@ -1,25 +1,66 @@
 import React from 'react';
+import logo from './logo.svg';
 import './App.css';
 import CanvasComponent from './components/CanvasComponent';
-import http from './services/fakeHttpService';
+import InputFileButton from './components/InputFileButton';
 
-class App extends React.Component<{}, { base64String: string | null }> {
+interface IAppStateProps {
+  base64String: string | null;
+  file: File | null;
+}
+
+class App extends React.Component<{}, IAppStateProps> {
   constructor(props: any) {
     super(props);
-    this.state = { base64String: null };
+    this.state = {
+      base64String: null,
+      file: null
+    };
   }
 
-  async componentDidMount() {
-    const base64String = await http.getFile();
-    if (typeof (base64String) === 'string') this.setState({ base64String });
+  onChangeEventHandler = (files: FileList | null) => {
+    const file = files ? files[0] : undefined;
+    const fileReader = new FileReader();
+
+    fileReader.addEventListener("load", () => {
+      this.setState({
+        file: file as File,
+        base64String: fileReader.result as string
+      });
+    });
+
+    if (file) {
+      fileReader.readAsDataURL(file);
+    }
   }
 
   render() {
     const { base64String } = this.state;
 
+    const canvasWrapperStyles: React.CSSProperties = {
+      width: '75vw',
+      height: '65vh'
+    };
+
     return (
       <div className="App">
-        {base64String && <CanvasComponent base64String={base64String} />}
+        <header className="App-header">
+          <div style={canvasWrapperStyles}>
+            {base64String ? (
+              <CanvasComponent base64String={base64String}></CanvasComponent>
+            ) : (
+              <img
+                alt="logo"
+                className="App-logo"
+                src={logo}
+              />
+            )}
+
+          </div>
+          <p>Canvas pixels and physics React App.</p>
+
+          <InputFileButton label={'Choose a file'} onChange={this.onChangeEventHandler}></InputFileButton>
+        </header>
       </div>
     )
   }

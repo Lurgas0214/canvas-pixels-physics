@@ -113,7 +113,7 @@ class CanvasComponent extends React.Component<CanvasProps> {
 
     init = (): void => {
         let pixels: Uint8ClampedArray | null = null, color: string, alpha: number, index: number, x: number, y: number, dx: number, dy: number, dw: number, dh: number;
-        const { canvasElement, canvasContext, imageElement, particles, ease, gap } = this;
+        const { animationFrameId, canvasElement, canvasContext, imageElement, particles, ease, gap } = this;
         const shift = 0.2, stretch = 1 - (shift * 2);
         if (canvasElement && canvasContext && imageElement) {
             dx = canvasElement.width * shift;
@@ -133,6 +133,11 @@ class CanvasComponent extends React.Component<CanvasProps> {
                 }
             }
         }
+
+        if (animationFrameId) {
+            cancelAnimationFrame(animationFrameId);
+        }
+
         this.warp();
     };
 
