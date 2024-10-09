@@ -38,9 +38,9 @@ const InputFileButton = (props: IInputFileButtonProps) => {
         }
     };
 
-    const onClickHandler: MouseEventHandler<HTMLDivElement> = () => {
-        inputElement?.click();
-    };
+    // const onClickHandler: MouseEventHandler<HTMLDivElement> = () => {
+    //     inputElement?.click();
+    // };
 
     let inputElement: HTMLInputElement | undefined = undefined;
     let buttonElement: HTMLDivElement | undefined = undefined;
@@ -48,7 +48,7 @@ const InputFileButton = (props: IInputFileButtonProps) => {
 
     return (
         <div
-            onClick={onClickHandler}
+            // onClick={onClickHandler}
             onMouseEnter={onHoverEvent}
             onMouseLeave={onHoverEvent}
             style={buttonStyles || ogButtonStyles}
@@ -60,9 +60,10 @@ const InputFileButton = (props: IInputFileButtonProps) => {
                 <span>{icon}</span>
                 {label}
             </label>
-            <input id='upload' type='file' ref={(ref: HTMLInputElement) => {
-                inputElement = ref as HTMLInputElement;
-            }}
+            <input id='upload' type='file'
+                ref={(ref: HTMLInputElement) => {
+                    inputElement = ref as HTMLInputElement;
+                }}
                 multiple={multiple} style={inputStyles} onChange={event => {
                     onChange(event.target.files)
                 }}
